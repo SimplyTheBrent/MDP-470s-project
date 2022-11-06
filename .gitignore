@@ -152,5 +152,8 @@ cython_debug/
 .idea/
 
 plots
+plots2
+plots3
 binimage.png
-binimage.png
+binimage_v2.png
+binimage_v3.png
