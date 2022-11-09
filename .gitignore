@@ -157,3 +157,5 @@ plots3
 binimage.png
 binimage_v2.png
 binimage_v3.png
+*.zip
+*.csv

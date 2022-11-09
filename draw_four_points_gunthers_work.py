@@ -13,18 +13,15 @@ import numpy as np
 import cv2
 from PIL import Image
 import doxapy
-from requests import head
 from scipy import ndimage
 from locate import this_dir
 from pathlib import Path
 
 import pandas as pd
 
-import csv
-
 tau = 2 * np.pi
 
-# Used within main execution
+
 def mkdir_and_delete_content(path):
     path = Path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -36,12 +33,11 @@ def mkdir_and_delete_content(path):
 
     return path
 
-# Used within function: get_indexes_of_a_circle_starting_from_behind
-# Used within class: Robot
+
 def roundi(x):
     return np.round(x).astype(int)
 
-# Used within main execution
+
 def binarize_image(filepath_from, filepath_to, upscale=1.0, **parameters):
     if "k" not in parameters:
         parameters["k"] = 0.2
@@ -64,7 +60,7 @@ def binarize_image(filepath_from, filepath_to, upscale=1.0, **parameters):
     sauvola.to_binary(binary_image, parameters)
     plt.imsave(filepath_to, binary_image, cmap="gray")
 
-# Used within function: get_indexes_of_all_pixels_forming_a_line
+
 def get_indexes_of_all_pixels_within_any_three_points(p1, p2, p3):
     """
     Get the indexes of the pixels within a trianlge of three points
@@ -93,7 +89,7 @@ def get_indexes_of_all_pixels_within_any_three_points(p1, p2, p3):
     indexes = tuple(i + x for (i, x) in zip(np.where(mask == 1), [h_min, w_min]))
     return indexes
 
-# Used within function: draw_slime_trail
+
 def get_indexes_of_all_pixels_within_any_four_points(p1, p2, p3, p4):
     """
     Get the indexes of the pixels within a quadrilateral of four points
@@ -130,7 +126,7 @@ def get_indexes_of_all_pixels_within_any_four_points(p1, p2, p3, p4):
     indexes = tuple(i + x for (i, x) in zip(np.where(mask == 1), [h_min, w_min]))
     return indexes
 
-# NOT USED
+
 def get_indexes_of_a_circle(midpoint, radius, number_of_points=100, starting_angle=0):
     """
     Get the points of a circle
@@ -152,7 +148,7 @@ def get_indexes_of_a_circle(midpoint, radius, number_of_points=100, starting_ang
         )
     return (x := np.array(points))[:, 1], x[:, 0]
 
-# Used in function(s): draw_on_image, get_best_angle_from_image (3 times)
+
 def get_indexes_of_a_circle_starting_from_behind(
     midpoint, radius, starting_angle=0, number_of_points=359
 ):
@@ -176,7 +172,7 @@ def get_indexes_of_a_circle_starting_from_behind(
         )
     return (x := roundi(np.array(points)))[:, 1], x[:, 0]
 
-# NOT USED
+
 def get_indexes_of_pixel_circle(midpoint, radius):
     """
     Get the indexes of the pixels forming a circle
@@ -204,7 +200,7 @@ def get_indexes_of_pixel_circle(midpoint, radius):
 
     return (idxes_rows[:, 1], idxes_rows[:, 2])
 
-# Used in function: draw_on_image
+
 def get_indexes_of_all_pixels_forming_a_line(p1, p2):
     """
     Get the indexes of the pixels forming a line
@@ -216,7 +212,7 @@ def get_indexes_of_all_pixels_forming_a_line(p1, p2):
     indexes = get_indexes_of_all_pixels_within_any_three_points(p1, p1, p2)
     return indexes
 
-# NOT USED
+
 def rotate_line_formed_by_two_points(p1, p2, angle):
     """
     Rotate a line formed by two points
@@ -247,7 +243,7 @@ def rotate_line_formed_by_two_points(p1, p2, angle):
     p2 = p2 + midpoint
     return p1, p2
 
-# NOT USED
+
 def get_normal_vector_of_two_points(p_left, p_right):
     """
     Get the normal vector of a line formed by two points
@@ -260,7 +256,7 @@ def get_normal_vector_of_two_points(p_left, p_right):
     normal_vector = np.array([p1_[1] - p2_[1], p2_[0] - p1_[0]])
     return normal_vector / np.linalg.norm(normal_vector)
 
-# Used within class: Robot
+
 def rotate_normal_vector(p, angle):
     """
     Rotate a normal vector
@@ -278,7 +274,7 @@ def rotate_normal_vector(p, angle):
     )
     return p
 
-# Used within main execution
+
 def add_black_border_around_image(im, border_size):
     """
     Add a black border around an image
@@ -290,7 +286,7 @@ def add_black_border_around_image(im, border_size):
     im = np.pad(im, border_size, mode="constant", constant_values=0)
     return im
 
-# Used in function: get_best_angle_from_image
+
 def blur_1d(vec, sigma=3):
     """
     Add a 1d blur to a vector
@@ -298,7 +294,7 @@ def blur_1d(vec, sigma=3):
     """
     return ndimage.gaussian_filter1d(vec, sigma)
 
-# Used in main function
+
 @dataclasses.dataclass
 class Robot:
     """
@@ -400,7 +396,7 @@ class Robot:
         idxes = get_indexes_of_all_pixels_within_any_four_points(l, r, l_p, r_p)
         im[idxes] = np.clip(im[idxes] + severity, 0, 1)
 
-    def get_best_angle_from_image(self, im, image_quality, plot_dir=None):
+    def get_best_angle_from_image(self, im, plot_dir=None):
         # as far as the bot looks
         idxes = get_indexes_of_a_circle_starting_from_behind(
             self.position, self.radius, self.angle
@@ -449,29 +445,27 @@ class Robot:
         if plot_dir is not None:
             plt.plot([argm-180, argm-180], [0, 1], "k")
             path = Path(plot_dir, get_current_datetime_as_string() + ".png")
-            # print(path)
-            plt.savefig(path, dpi=image_quality)
+            plt.savefig(path, dpi=50)
             plt.close()
             shutil.copy2(path, Path(plot_dir, "__latest__.png"))
 
         return angle, stop
 
-# Used in function: draw_on_image
+
 def draw_0_on_img(im, f, *args, **kwargs):
     indexes = f(*args, **kwargs)
     im[indexes] = 0
 
-# Used in function: imshow_gray_as_purple, get_best_angle_from_image
+
 def get_current_datetime_as_string():
     return datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")
 
-# Used in main execution
+
 def as_degree(angle):
     return angle * 360 / tau
 
 
 # Note that you should edit this further in order to export images to use in your presentation
-# Used in main execution
 def imshow_gray_as_purple(im, dir_location, *args, **kwargs):
     im = np.stack([im, im, im], axis=-1)
 
@@ -524,302 +518,116 @@ if 1:
 
     plt.imsave(Path(this_dir(), "dump.png"), np.stack([A, A, A], axis=-1))
 """
-def main_execution(
-    xvalue, yvalue, tau_input, run, stop_range, draw_steps, rad, step_length, radius_slime, 
-    severity_slime, draw_image, from_image_location, to_image_location, plot_folder_name1, 
-    example_folder_name1, plot_folder_name2, example_folder_name2,version,quality_of_image):
-    n = run
 
-    print('Starting on Location ' + from_image_location + ' @ x-coordinate: ' + str(xvalue) + ', y-coordinate: ' + str(yvalue) + '.')
-    print('Version: ' + version + ' - [Radius: ' + str(rad) + ', Step Size: ' + str(step_length) + ', Slime Radius: ' + str(radius_slime) + ']')
+if 1:
 
-    if n == 1:
+    binarize_image(
+        Path(this_dir(), "sample_image.png"),
+        Path(this_dir(), "binimage.png"),
+        upscale=4,
+        k=0.22,
+        window=75,
+    )
+    A = (plt.imread(Path(this_dir(), "binimage.png"))[:, :, 0]).astype("float")
+    A_slime = A
 
-        binarize_image(
-            Path(this_dir(), from_image_location),
-            Path(this_dir(), to_image_location),
-            upscale=4,
-            k=0.22,
-            window=75,
-        )
-        A = (plt.imread(Path(this_dir(), to_image_location))[:, :, 0]).astype("float")
-        A_slime = A
+    # TODO: since the parameters are here, why not ask Brent put the rest of the code into a function?
+    p = SimpleNamespace(
+        start_position=(6000, 300),
+        start_angle=tau * 0.1,
+        radius=100,
+        stepsize=20,
+        slime_radius=20,
+        slime_severity=0.1,
+    )
+    plotdir = mkdir_and_delete_content(Path(this_dir(), "plots", "example"))
+    angledir = mkdir_and_delete_content(Path(this_dir(), "plots", "example_angle"))
 
-        # TODO: since the parameters are here, why not ask Brent put the rest of the code into a function?
-        p = SimpleNamespace(
-            start_position=(xvalue, yvalue),
-            start_angle=tau_input * 0.1,
-            radius=rad, #p = 100
-            stepsize=step_length, #p = 20
-            slime_radius=radius_slime, #p = 20
-            slime_severity=severity_slime, #p = 0.1
-        )
-        plotdir = mkdir_and_delete_content(Path(this_dir(), plot_folder_name1, example_folder_name1))
-        angledir = mkdir_and_delete_content(Path(this_dir(), plot_folder_name2, example_folder_name2))
+    # TODO: maybe make border radius * 1.1 or something, but that gets convoluted with the start position!
+    A = add_black_border_around_image(A, 120)
+    A_slime = add_black_border_around_image(A_slime, 120)
 
-        # TODO: maybe make border radius * 1.1 or something, but that gets convoluted with the start position!
-        A = add_black_border_around_image(A, 120)
-        A_slime = add_black_border_around_image(A_slime, 120)
+    # Remember opencv points are (x=column,y=row) whereas numpy indexes are (i=row,j=column)
+    r = Robot(p.start_position, p.start_angle, p.radius, p.stepsize, p.slime_radius)
+    r.draw_on_image(A)
 
-        # Remember opencv points are (x=column,y=row) whereas numpy indexes are (i=row,j=column)
-        r = Robot(p.start_position, p.start_angle, p.radius, p.stepsize, p.slime_radius)
-        r.draw_on_image(A)
+    r_prev = copy(r)
+    angle = 0
 
-        r_prev = copy(r)
-        angle = 0
+    #GUN ADD START
+    # Setup for the stopping coverage criterion
+    max_area = A.shape[0]*A.shape[1]
+    sum_A = A.sum()
+    stop_coverage = 20 # stop criterion measured in percentage
 
-        #GUN ADD START
-        # Setup for the stopping coverage criterion
-        max_area = A.shape[0]*A.shape[1]
-        sum_A = A.sum()
-        stop_coverage = 20 # stop criterion measured in percentage
+    def calc_coverage(A_slime, max_area, sum_A):
+        """
+        Calculate the coverage of the map
+        :param A_slime: normal vector
+        :param max_area: float
+        :param sum_A: float
+        :return: float percentage coverage
+        """
+        original_open_area = sum_A
+        sum_test = A_slime.copy()
+        sum_test[sum_test < 1] = 0
+        area_difference = original_open_area - sum_test.sum()
+        return (area_difference/original_open_area)*100
 
-        def calc_coverage(A_slime, max_area, sum_A):
-            """
-            Calculate the coverage of the map
-            :param A_slime: normal vector
-            :param max_area: float
-            :param sum_A: float
-            :return: float percentage coverage
-            """
-            original_open_area = sum_A
-            sum_test = A_slime.copy()
-            sum_test[sum_test < 1] = 0
-            area_difference = original_open_area - sum_test.sum()
-            return (area_difference/original_open_area)*100
+    coverage = calc_coverage(A_slime, max_area, sum_A)
+    coverage_list = [coverage] # coverage stopping criterion list
+    #GUN ADD END
 
-        def calc_overlap(A_slime, sum_A, slime_severity):
-            """
-            Calculate the coverage of the map
-            :param A_slime: normal vector
-            :param sum_A: float
-            :param slime_severity: float
-            :return: float percentage coverage
-            """
-            original_open_area = sum_A
-            min_overlap_sum = original_open_area * slime_severity
-            A_o = A_slime.copy()
-            sum_overlap = A_o[(A_o < (1-slime_severity)) & (A_o > 0)].sum()
+    for i in range(999999999999999):
+        if i % 50 == 0:
+            imshow_gray_as_purple(A_slime, plotdir)
 
-            return (sum_overlap/min_overlap_sum)*100
+        try:
+            r.walk(angle)
+            r.draw_on_image(A)
+            r.draw_slime_trail(A_slime, r_prev, -p.slime_severity)
+            angle, stop = r.get_best_angle_from_image(
+                A_slime,
+                #angledir
+            )
+            print(f"{int(r.angle*360/tau)}\t{int(angle*360/tau)}")
+            if stop:
+                break
+            r_prev = copy(r)
+            
 
-        coverage = calc_coverage(A_slime, max_area, sum_A)
-        coverage_list = [coverage] # coverage stopping criterion list
-        overlap_list = [0] # overlap list
-        #GUN ADD END
-
-        for i in range(stop_range):
-            if i % draw_steps == 0:
-                if draw_image == True:
-                    imshow_gray_as_purple(A_slime, plotdir)
-                else:
-                    continue
-            try:
-                r.walk(angle)
-                r.draw_on_image(A)
-                r.draw_slime_trail(A_slime, r_prev, -p.slime_severity)
-                angle, stop = r.get_best_angle_from_image(
-                    A_slime,
-                    quality_of_image
-                    #angledir
-                )
-                print(f"{int(r.angle*360/tau_input)}\t{int(angle*360/tau_input)}")
-                if stop:
-                    break
-                r_prev = copy(r)
-
-                if i == 0 or i == (stop_range - 1):
+            # This prints out A matrix and A_slime matrix if True
+            if False:
+                if i % 50 == 0:
                     A_dir = Path(f"A matrix")
                     A_dir.mkdir(parents=True, exist_ok=True)
                     A_date_time = get_current_datetime_as_string()
-                    pd.DataFrame(A).to_csv(f"A matrix\\A_{version}_{A_date_time}.csv")
-                    pd.DataFrame(A_slime).to_csv(f"A matrix\\A_slime_{version}_{A_date_time}.csv")
-
-                #GUN ADD START
-                # Coverage calculation
-                coverage = calc_coverage(A_slime, max_area, sum_A)
-                coverage_list.append(coverage)
-                print('Coverage: ' + str(round(coverage,2)))
-
-                overlap = calc_overlap(A_slime, sum_A, p.slime_severity)
-                overlap_list.append(overlap)
-                print('Overlap:' + str(round(overlap,2)))
-                #GUN ADD END
-
-                # Convert A and A_slime to dataframe
-
-            # walked out of the image
-            except IndexError:
-                break
-
+                    pd.DataFrame(A).to_csv(f"A matrix\\A_{A_date_time}.csv")
+                    pd.DataFrame(A_slime).to_csv(f"A matrix\\A_slime_{A_date_time}.csv")
+            
             #GUN ADD START
-            # Test for stopping criterion and break out of for loop
-            if coverage >= stop_coverage:
-                break
+            # Coverage calculation
+            coverage = calc_coverage(A_slime, max_area, sum_A)
+            coverage_list.append(coverage)
+            print(round(coverage,2))
             #GUN ADD END
-
-        #r_prev.get_best_angle_from_image(A_slime, True)
-        #r.get_best_angle_from_image(A_slime, True)
-
-        imshow_gray_as_purple(A_slime*A, plotdir)
-
+            
+        # walked out of the image
+        except IndexError:
+            break
+        
         #GUN ADD START
-        Path(f"Coverage list").mkdir(parents=True, exist_ok=True)
-        df_stats = pd.DataFrame({'Coverage':coverage_list, 'Overlap' : overlap_list})
-        df_stats.to_csv(f"Coverage list\\Coverage_list_{version}_{get_current_datetime_as_string()}.csv")
+        # Test for stopping criterion and break out of for loop
+        if coverage >= stop_coverage:
+            break
         #GUN ADD END
 
-        print('Ending on Location ' + from_image_location + '. ' + version)
-    else: 
-        print("Did not execute")
+    #r_prev.get_best_angle_from_image(A_slime, True)
+    #r.get_best_angle_from_image(A_slime, True)
 
-# Start Position
-xvalues = [550,550,2000]
-yvalues = [1150,3000,800]
+    imshow_gray_as_purple(A_slime*A, plotdir)
 
-range_value = [999999999999,999999999999,999999999999]
-go_no_go = [1,1,1]
-steps = [100,100,100]
-v_radius = [
-    [80,100,120],
-    [80,100,120], #To change
-    [80,100,120] #To change
-]
-v_step_length = [
-    [10,20,30],
-    [10,20,30],
-    [10,20,30]
-]
-v_radius_slime = [
-    [10,20,30],
-    [10,20,30],
-    [10,20,30]
-]
-v_severity_slime = [0.1,0.1,0.1]
-v_draw_image = [True,True,True]
-
-image_from_list = ['Meerandal_Vinyard_V1.png','Meerandal_Vinyard_V2.png','Meerandal_Vinyard_V3.png']
-
-version_number = [
-    ['v1r1','v1r2','v1r3'],
-    ['v2r1','v2r2','v2r3'],
-    ['v3r1','v3r2','v3r3']
-]
-
-image_to_list = [
-    ['binimage_v1_run1.png','binimage_v1_run2.png','binimage_v1_run3.png'],
-    ['binimage_v2_run1.png','binimage_v2_run2.png','binimage_v2_run3.png'],
-    ['binimage_v3_run1.png','binimage_v3_run2.png','binimage_v3_run3.png']
-]
-
-folder_plots1 = [
-    ['plots_v1_run1','plots_v1_run2','plots_v1_run3'],
-    ['plots_v2_run1','plots_v2_run2','plots_v2_run3'],
-    ['plots_v3_run1','plots_v3_run2','plots_v3_run3']
-]
-
-folder_example1 = [
-    ['example_v1_run1','example_v1_run2','example_v1_run3'],
-    ['example_v2_run1','example_v2_run2','example_v2_run3'],
-    ['example_v3_run1','example_v3_run2','example_v3_run3']
-]
-
-angle_plots1 = [
-    ['plots_v1_run1','plots_v1_run2','plots_v1_run3'],
-    ['plots_v2_run1','plots_v2_run2','plots_v2_run3'],
-    ['plots_v3_run1','plots_v3_run2','plots_v3_run3']
-]
-
-angle_examples = [
-    ['exampleAngle_v1_run1','exampleAngle_v1_run2','exampleAngle_v1_run3'],
-    ['exampleAngle_v2_run1','exampleAngle_v2_run2','exampleAngle_v2_run3'],
-    ['exampleAngle_v3_run1','exampleAngle_v3_run2','exampleAngle_v3_run3']
-]
-
-quality_image = input("What image quality would you like (e.g. 50): ")
-
-image_no = 0
-
-while image_no <= 2:
-    try:
-        run_number = 0
-        while run_number <= 2:
-            try:
-                main_execution(
-                    xvalues[image_no],
-                    yvalues[image_no],
-                    tau, 
-                    go_no_go[image_no], 
-                    range_value[image_no], 
-                    steps[image_no], 
-                    v_radius[image_no][run_number], 
-                    v_step_length[image_no][run_number], 
-                    v_radius_slime[image_no][run_number], 
-                    v_severity_slime[image_no], 
-                    v_draw_image[image_no], 
-                    image_from_list[image_no], 
-                    image_to_list[image_no][run_number], 
-                    folder_plots1[image_no][run_number], 
-                    folder_example1[image_no][run_number], 
-                    angle_plots1[image_no][run_number], 
-                    angle_examples[image_no][run_number],
-                    version_number[image_no][run_number],
-                    quality_image
-                )
-                
-                shutil.make_archive(folder_plots1[image_no][run_number] + '_zip', 'zip', folder_plots1[image_no][run_number])
-                shutil.rmtree(folder_plots1[image_no][run_number])
-                run_number += 1
-            except:
-                run_number += 1
-        image_no += 1
-    except:
-        image_no += 1
-
-# binarize_image(
-#     Path(this_dir(), "apex.png"),
-#     Path(this_dir(), "apex_binimage.png"),
-#     upscale=4,
-#     k=0.22,
-#     window=75,
-# )
-
-# def store_bin_image_in_csv(image_name, csv_to_store):
-
-#     file = Path(this_dir(), image_name)
-#     test = np.array(Image.open(file).convert("L"))
-
-#     total_rows = len(test)
-#     # print(total_rows)
-#     total_columns = len(test[0])
-#     # print(total_columns)
-
-#     # print(len(test[1]))
-
-#     f = open(Path(this_dir(), csv_to_store), 'w', newline='')
-#     writer = csv.writer(f)
-
-#     i = 0
-#     while i <= total_rows:
-#         try:
-#             n = 0
-#             string = []
-#             while n <= total_columns:
-#                 try:
-#                     string.append(str(test[i][n]))
-#                     n += 1
-#                 except:
-#                     break
-#             writer.writerow(string)
-#             # print(string)
-#             # print('row ' + str(i) + ' completed')
-#             i += 1
-#         except:
-#             break
-
-#     f.close()
-
-# v_image_name = "sample_image.png"
-# v_csv_to_store = "binary_image_3.csv"
-
-# store_bin_image_in_csv(v_image_name,v_csv_to_store)
+    #GUN ADD START
+    Path(f"Coverage list").mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(coverage_list).to_csv(f"Coverage list\\Coverage_list_{get_current_datetime_as_string()}.csv")
+    #GUN ADD END
